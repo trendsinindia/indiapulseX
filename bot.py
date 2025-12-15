@@ -35,6 +35,25 @@ client = tweepy.Client(
 auth = tweepy.OAuth1UserHandler(API_KEY, API_SECRET, ACCESS_TOKEN, ACCESS_SECRET)
 api_v1 = tweepy.API(auth)
 
+
+# ================================
+# IPL / CRICKET KEYWORDS (ADDON)
+# ================================
+IPL_KEYWORDS = [
+    "ipl", "indian premier league",
+    "ms dhoni", "dhoni",
+    "csk", "chennai super kings",
+    "rcb", "royal challengers",
+    "mi", "mumbai indians",
+    "kkr", "kolkata knight riders",
+    "srh", "sunrisers hyderabad",
+    "rr", "rajasthan royals",
+    "dc", "delhi capitals",
+    "lsg", "lucknow super giants",
+    "gt", "gujarat titans",
+    "cricket", "t20"
+]
+
 # ================================
 # TRENDING TOPICS (100% FREE – Google News RSS)
 # ================================
@@ -66,6 +85,15 @@ def fetch_trending_topics():
     except Exception as e:
         print("⚠️ RSS fetch error:", e)
         return []
+
+def is_ipl_related(topic):
+    text = f"{topic['title']} {topic['description']}".lower()
+    return any(keyword in text for keyword in IPL_KEYWORDS)
+
+def get_ipl_topics(topics):
+    ipl_topics = [t for t in topics if is_ipl_related(t)]
+    return ipl_topics
+
 
 # ================================
 # GENERATE TWEET CONTENT
@@ -148,6 +176,11 @@ def create_tweet_text(topic):
         "#Trending", "#IndiaNews", "#Breaking",
         "#LatestUpdate", "#TopStory", "#InShorts"
     ]
+    
+    # IPL hashtag boost
+    if is_ipl_related(topic):
+        hashtags += ["#IPL", "#MSDhoni", "#CSK", "#Cricket"]
+
 
     intro = random.choice(intros)
     tag_string = " ".join(random.sample(hashtags, 3))
@@ -179,7 +212,15 @@ def run_bot(interval=3600):
     print("🚀 Bot started with Safety Mode ON.")
 
     while True:
-        topics = fetch_trending_topics()
+        # 30% chance to post IPL content if available
+        ipl_topics = get_ipl_topics(topics)
+        
+        if ipl_topics and random.random() < 0.3:
+            topic = random.choice(ipl_topics)
+            print("🏏 IPL mode activated!")
+        else:
+            topic = random.choice(topics)
+
 
         if not topics:
             print("⚠️ No topics returned. Sleeping for 2 minutes...")
@@ -243,3 +284,4 @@ def run_bot(interval=3600):
 # ================================
 if __name__ == "__main__":
     run_bot(interval=3600)   # base interval, but actual sleep is randomized
+
